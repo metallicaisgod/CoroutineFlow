@@ -1,8 +1,8 @@
 package com.kirillmesh.coroutineflow.crypto_app
 
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlin.random.Random
 
 object CryptoRepository {
@@ -10,12 +10,13 @@ object CryptoRepository {
     private val currencyNames = listOf("BTC", "ETH", "USDT", "BNB", "USDC")
     private val currencyList = mutableListOf<Currency>()
 
-    fun getCurrencyList(): Flow<List<Currency>> = flow {
-        while (true) {
-            delay(3000)
-            generateCurrencyList()
-            emit(currencyList.toList())
-        }
+    private val _refreshCurrencyList = MutableSharedFlow<List<Currency>>()
+    val refreshCurrencyList = _refreshCurrencyList.asSharedFlow()
+
+    suspend fun getCurrencyList() {
+        delay(3000)
+        generateCurrencyList()
+        _refreshCurrencyList.emit(currencyList.toList())
     }
 
     private fun generateCurrencyList() {
