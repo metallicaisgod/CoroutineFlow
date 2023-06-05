@@ -2,24 +2,30 @@ package com.kirillmesh.coroutineflow.crypto_app
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class CryptoViewModel : ViewModel() {
 
     private val repository = CryptoRepository
 
+    private val loadingList = MutableSharedFlow<State>()
+
     val state: Flow<State> = repository.getCurrencyList()
         .filter { it.isNotEmpty() }
         .map { State.Content(it) as State }
         .onStart { State.Loading }
+        .mergeWith(loadingList)
+
+
+    private fun <T> Flow<T>.mergeWith(vararg flows: Flow<T>): Flow<T> {
+        return merge(this, flows.asIterable().merge())
+    }
 
     fun refreshList() {
         viewModelScope.launch {
             repository.refreshList()
+            loadingList.emit(State.Loading)
         }
     }
 }
